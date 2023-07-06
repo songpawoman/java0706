@@ -4,6 +4,12 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -69,20 +75,139 @@ public class Editor extends JFrame implements ActionListener{
 	}
 	
 	public void setFont() {
-		Font font=new Font("Verdana", Font.PLAIN, 16);
+		Font font=new Font("돋움체", Font.PLAIN, 16);
 		area.setFont(font);
 	}
 	
+	//바이트 기반 스트림으로 파일 열기
 	public void openFile() {
 		System.out.println("열꺼야?");
-		chooser.showOpenDialog(this);
+		
+		int result=chooser.showOpenDialog(this);
+		
+		//스트림은 기본적으로 1byte씩 처리되므로, 
+		//영문의 이외의 문자를 해석할 수 없다..
+		//(2byte로 표현되는 문자- 영문 제외 전세계 문자)
+		FileInputStream fis=null;
+		
+		if(result == JFileChooser.APPROVE_OPTION){
+			File file=chooser.getSelectedFile();
+			
+			//FileInputStream 생성시, 경로도 가능하지만, File 자체도 가능함
+			try {
+				fis = new FileInputStream(file);//빨대 꽂기
+				
+				int data=-1;
+				
+				byte[] b=new byte[1024];
+				
+				while(true) {
+					//실행중인 프로그램이 스트림으로부터 한 알갱이 즉 1byte 읽기
+					data=fis.read(b);
+					
+					if(data==-1)break;
+					//읽어들인 데이터는 b에 담겨져 있다..
+					String str=new String(b);
+					//자바의 모든 기본자료형마다 1:1 대응하는 Wrapper클래스가 지원됨
+					//ex) int 
+					//boolean : Boolean, 
+					//char:Character
+					//character --> String
+					area.append(str+"\n");
+				}
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
+	
+	//문자기반 스트림으로 파일 열기 
+	public void openFileByReader() {
+		int result=chooser.showOpenDialog(this); //파일 탐색기 열기
+		if(result == JFileChooser.APPROVE_OPTION) {//열기 선택시
+			File file=chooser.getSelectedFile();
+			
+			//영문 뿐만 아니라, 전세계 모든 문자를 해석할수 잇는 능력이 있는
+			//스트림을 이용해보자 
+			FileReader fr=null;
+			
+			try {
+				fr=new FileReader(file);
+				
+				int data=-1;
+				//영문도 1자, 한글도 1자로 인식 
+				//apple 맛나요  : 9회 읽어들임
+				while(true){
+					data=fr.read();//한 문자 읽기
+					if(data==-1)break;
+					System.out.println((char)data);
+					
+					area.append(Character.toString((char)data));
+				}
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+		}
+	}
+	
+	//버퍼까지 처리된 문자기반 스트림으로 파일 열기
+	//버처가 처리된 스트림은 접두어에 Buffered~~
+	public void openFileByBuffer() {
+		int result=chooser.showOpenDialog(this);
+		
+		FileReader reader=null;
+		BufferedReader buffr=null;
+		
+		if(result==JFileChooser.APPROVE_OPTION){
+			File file = chooser.getSelectedFile();//유저가 선택한 파일
+			try {
+				reader = new FileReader(file);
+				buffr = new BufferedReader(reader);
+				
+				String msg=null;
+				
+				while(true) {
+					msg=buffr.readLine(); // 한줄을 읽어들임(맨끝에 \n 줄바꿈 만나면)
+					if(msg==null)break;
+					area.append(msg+"\n");
+				}
+				
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}finally {
+				if(buffr !=null) {// 인스턴스가 존재한다면..
+					try {
+						buffr.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+				
+				if(reader!=null) {
+					try {
+						reader.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		 
+	}
+	
 	
 	public void actionPerformed(ActionEvent e) {
 		JMenuItem obj=(JMenuItem)e.getSource();
 		
 		if(obj==item[2]) {//열기 눌렀을때...
-			openFile();
+			openFileByBuffer();
 		}
 		
 	}
